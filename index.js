@@ -54,6 +54,27 @@ app.post("/notes", (req, res) => {
   });
 });
 
+app.delete("/notes/:id", (req, res) => {
+  const noteId = Number(req.params.id);
+
+  // Ищем индекс заметки в массиве.
+  const noteIndex = notes.findIndex((note) => note.id === noteId);
+
+  // Если заметка не найдена.
+  if (noteIndex === -1) {
+    return res.status(404).json({
+      message: "Note not found",
+    });
+  }
+
+  // Удаляем заметку из массива.
+  notes.splice(noteIndex, 1);
+
+  res.json({
+    message: "Note deleted",
+  });
+});
+
 app.listen(PORT, () => {
   console.log(`Server started on port ${PORT}`);
 });
