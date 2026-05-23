@@ -4,6 +4,8 @@ const app = express();
 
 const PORT = 3000;
 
+app.use(express.json());
+
 const notes = [
   {
     id: 1,
@@ -25,6 +27,17 @@ app.get("/", (req, res) => {
 
 app.get("/notes", (req, res) => {
   res.json(notes);
+});
+
+app.post("/notes", (req, res) => {
+  const newNote = req.body;
+
+  notes.push(newNote);
+
+  res.status(201).json({
+    message: "Note created",
+    note: newNote,
+  });
 });
 
 app.listen(PORT, () => {
