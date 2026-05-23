@@ -75,6 +75,31 @@ app.delete("/notes/:id", (req, res) => {
   });
 });
 
+app.patch("/notes/:id", (req, res) => {
+  const noteId = Number(req.params.id);
+
+  // Ищем заметку.
+  const note = notes.find((note) => note.id === noteId);
+
+  // Если заметка не найдена.
+  if (!note) {
+    return res.status(404).json({
+      message: "Note not found",
+    });
+  }
+
+  // Данные для обновления.
+  const updatedData = req.body;
+
+  // Частично обновляем объект.
+  Object.assign(note, updatedData);
+
+  res.json({
+    message: "Note updated",
+    note,
+  });
+});
+
 app.listen(PORT, () => {
   console.log(`Server started on port ${PORT}`);
 });
