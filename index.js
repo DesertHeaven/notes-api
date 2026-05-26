@@ -1,38 +1,60 @@
+require("dotenv/config");
+
 const express = require("express");
+const { PrismaClient } = require("@prisma/client");
+const { PrismaPg } = require("@prisma/adapter-pg");
 
 const app = express();
 
+const adapter = new PrismaPg({
+  connectionString: process.env.DATABASE_URL,
+});
+
+const prisma = new PrismaClient({
+  adapter,
+});
+
 const PORT = 3000;
 
+// Middleware for reading JSON request body.
 app.use(express.json());
 
-const notes = [
-  {
-    id: 1,
-    title: "Learn Node.js",
-    content: "Understand how Express handles routes",
-  },
-  {
-    id: 2,
-    title: "Build CRUD API",
-    content: "Create, read, update and delete notes",
-  },
-];
-
+// GET /
+// Main route.
 app.get("/", (req, res) => {
   res.json({
     message: "Hello from Node.js API",
   });
 });
 
-app.get("/notes", (req, res) => {
+// GET /notes
+// Get all notes from PostgreSQL.
+app.get("/notes", async (req, res) => {
+  const notes = await prisma.note.findMany({
+    orderBy: {
+      id: "asc",
+    },
+  });
+
   res.json(notes);
 });
 
-app.get("/notes/:id", (req, res) => {
+// GET /notes/:id
+// Get one note by ID.
+app.get("/notes/:id", async (req, res) => {
   const noteId = Number(req.params.id);
 
-  const note = notes.find((note) => note.id === noteId);
+  if (Number.isNaN(noteId)) {
+    return res.status(400).json({
+      message: "Invalid note ID",
+    });
+  }
+
+  const note = await prisma.note.findUnique({
+    where: {
+      id: noteId,
+    },
+  });
 
   if (!note) {
     return res.status(404).json({
@@ -43,10 +65,23 @@ app.get("/notes/:id", (req, res) => {
   res.json(note);
 });
 
-app.post("/notes", (req, res) => {
-  const newNote = req.body;
+// POST /notes
+// Create a new note in PostgreSQL.
+app.post("/notes", async (req, res) => {
+  const { title, content } = req.body;
 
-  notes.push(newNote);
+  if (!title || !content) {
+    return res.status(400).json({
+      message: "Title and content are required",
+    });
+  }
+
+  const newNote = await prisma.note.create({
+    data: {
+      title,
+      content,
+    },
+  });
 
   res.status(201).json({
     message: "Note created",
@@ -54,52 +89,95 @@ app.post("/notes", (req, res) => {
   });
 });
 
-app.delete("/notes/:id", (req, res) => {
+// PATCH /notes/:id
+// Partially update one note by ID.
+app.patch("/notes/:id", async (req, res) => {
   const noteId = Number(req.params.id);
 
-  // Ищем индекс заметки в массиве.
-  const noteIndex = notes.findIndex((note) => note.id === noteId);
+  if (Number.isNaN(noteId)) {
+    return res.status(400).json({
+      message: "Invalid note ID",
+    });
+  }
 
-  // Если заметка не найдена.
-  if (noteIndex === -1) {
+  const existingNote = await prisma.note.findUnique({
+    where: {
+      id: noteId,
+    },
+  });
+
+  if (!existingNote) {
     return res.status(404).json({
       message: "Note not found",
     });
   }
 
-  // Удаляем заметку из массива.
-  notes.splice(noteIndex, 1);
+  const { title, content } = req.body;
+
+  if (title === undefined && content === undefined) {
+    return res.status(400).json({
+      message: "At least title or content is required",
+    });
+  }
+
+  const data = {};
+
+  if (title !== undefined) {
+    data.title = title;
+  }
+
+  if (content !== undefined) {
+    data.content = content;
+  }
+
+  const updatedNote = await prisma.note.update({
+    where: {
+      id: noteId,
+    },
+    data,
+  });
+
+  res.json({
+    message: "Note updated",
+    note: updatedNote,
+  });
+});
+
+// DELETE /notes/:id
+// Delete one note by ID.
+app.delete("/notes/:id", async (req, res) => {
+  const noteId = Number(req.params.id);
+
+  if (Number.isNaN(noteId)) {
+    return res.status(400).json({
+      message: "Invalid note ID",
+    });
+  }
+
+  const existingNote = await prisma.note.findUnique({
+    where: {
+      id: noteId,
+    },
+  });
+
+  if (!existingNote) {
+    return res.status(404).json({
+      message: "Note not found",
+    });
+  }
+
+  await prisma.note.delete({
+    where: {
+      id: noteId,
+    },
+  });
 
   res.json({
     message: "Note deleted",
   });
 });
 
-app.patch("/notes/:id", (req, res) => {
-  const noteId = Number(req.params.id);
-
-  // Ищем заметку.
-  const note = notes.find((note) => note.id === noteId);
-
-  // Если заметка не найдена.
-  if (!note) {
-    return res.status(404).json({
-      message: "Note not found",
-    });
-  }
-
-  // Данные для обновления.
-  const updatedData = req.body;
-
-  // Частично обновляем объект.
-  Object.assign(note, updatedData);
-
-  res.json({
-    message: "Note updated",
-    note,
-  });
-});
-
+// Start server.
 app.listen(PORT, () => {
   console.log(`Server started on port ${PORT}`);
 });
