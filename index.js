@@ -21,6 +21,12 @@ const PORT = 3000;
 // Middleware for reading JSON request body.
 app.use(express.json());
 
+const asyncHandler = (routeHandler) => {
+  return (req, res, next) => {
+    Promise.resolve(routeHandler(req, res, next)).catch(next);
+  };
+};
+
 const openapiSpec = swaggerJsdoc({
   definition: {
     openapi: "3.0.0",
@@ -115,6 +121,13 @@ app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(openapiSpec));
  *           example: Note created
  *         note:
  *           $ref: '#/components/schemas/Note'
+ *   responses:
+ *     InternalServerError:
+ *       description: Internal server error
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/MessageResponse'
  */
 
 // GET /
@@ -143,8 +156,10 @@ app.get("/", (req, res) => {
  *               type: array
  *               items:
  *                 $ref: '#/components/schemas/Note'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
  */
-app.get("/notes", async (req, res) => {
+app.get("/notes", asyncHandler(async (req, res) => {
   const notes = await prisma.note.findMany({
     orderBy: {
       id: "asc",
@@ -152,7 +167,7 @@ app.get("/notes", async (req, res) => {
   });
 
   res.json(notes);
-});
+}));
 
 // GET /notes/:id
 // Get one note by ID.
@@ -189,8 +204,10 @@ app.get("/notes", async (req, res) => {
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/MessageResponse'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
  */
-app.get("/notes/:id", async (req, res) => {
+app.get("/notes/:id", asyncHandler(async (req, res) => {
   const noteId = Number(req.params.id);
 
   if (Number.isNaN(noteId)) {
@@ -212,7 +229,7 @@ app.get("/notes/:id", async (req, res) => {
   }
 
   res.json(note);
-});
+}));
 
 // POST /notes
 // Create a new note in PostgreSQL.
@@ -242,8 +259,10 @@ app.get("/notes/:id", async (req, res) => {
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/MessageResponse'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
  */
-app.post("/notes", async (req, res) => {
+app.post("/notes", asyncHandler(async (req, res) => {
   const { title, content } = req.body;
 
   if (!title || !content) {
@@ -263,7 +282,7 @@ app.post("/notes", async (req, res) => {
     message: "Note created",
     note: newNote,
   });
-});
+}));
 
 // PATCH /notes/:id
 // Partially update one note by ID.
@@ -306,8 +325,10 @@ app.post("/notes", async (req, res) => {
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/MessageResponse'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
  */
-app.patch("/notes/:id", async (req, res) => {
+app.patch("/notes/:id", asyncHandler(async (req, res) => {
   const noteId = Number(req.params.id);
 
   if (Number.isNaN(noteId)) {
@@ -357,7 +378,7 @@ app.patch("/notes/:id", async (req, res) => {
     message: "Note updated",
     note: updatedNote,
   });
-});
+}));
 
 // DELETE /notes/:id
 // Delete one note by ID.
@@ -394,8 +415,10 @@ app.patch("/notes/:id", async (req, res) => {
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/MessageResponse'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
  */
-app.delete("/notes/:id", async (req, res) => {
+app.delete("/notes/:id", asyncHandler(async (req, res) => {
   const noteId = Number(req.params.id);
 
   if (Number.isNaN(noteId)) {
@@ -424,6 +447,14 @@ app.delete("/notes/:id", async (req, res) => {
 
   res.json({
     message: "Note deleted",
+  });
+}));
+
+app.use((err, req, res, next) => {
+  console.error(err);
+
+  res.status(500).json({
+    message: "Internal server error",
   });
 });
 
