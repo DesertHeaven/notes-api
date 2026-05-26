@@ -3,6 +3,8 @@ require("dotenv/config");
 const express = require("express");
 const { PrismaClient } = require("@prisma/client");
 const { PrismaPg } = require("@prisma/adapter-pg");
+const swaggerJsdoc = require("swagger-jsdoc");
+const swaggerUi = require("swagger-ui-express");
 
 const app = express();
 
@@ -19,6 +21,102 @@ const PORT = 3000;
 // Middleware for reading JSON request body.
 app.use(express.json());
 
+const openapiSpec = swaggerJsdoc({
+  definition: {
+    openapi: "3.0.0",
+    info: {
+      title: "Notes API",
+      version: "1.0.0",
+      description: "Simple CRUD API for notes.",
+    },
+    servers: [
+      {
+        url: `http://localhost:${PORT}`,
+        description: "Local development server",
+      },
+    ],
+  },
+  apis: ["./index.js"],
+});
+
+app.get("/api-docs-json", (req, res) => {
+  res.json(openapiSpec);
+});
+
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(openapiSpec));
+
+/**
+ * @openapi
+ * components:
+ *   schemas:
+ *     Note:
+ *       type: object
+ *       required:
+ *         - id
+ *         - title
+ *         - content
+ *         - createdAt
+ *         - updatedAt
+ *       properties:
+ *         id:
+ *           type: integer
+ *           example: 1
+ *         title:
+ *           type: string
+ *           example: Learn Swagger
+ *         content:
+ *           type: string
+ *           example: Describe the API contract with OpenAPI.
+ *         createdAt:
+ *           type: string
+ *           format: date-time
+ *           example: "2026-05-26T10:00:00.000Z"
+ *         updatedAt:
+ *           type: string
+ *           format: date-time
+ *           example: "2026-05-26T10:00:00.000Z"
+ *     CreateNoteInput:
+ *       type: object
+ *       required:
+ *         - title
+ *         - content
+ *       properties:
+ *         title:
+ *           type: string
+ *           example: Learn Swagger
+ *         content:
+ *           type: string
+ *           example: Add OpenAPI docs to Express.
+ *     UpdateNoteInput:
+ *       type: object
+ *       properties:
+ *         title:
+ *           type: string
+ *           example: Updated title
+ *         content:
+ *           type: string
+ *           example: Updated content
+ *     MessageResponse:
+ *       type: object
+ *       required:
+ *         - message
+ *       properties:
+ *         message:
+ *           type: string
+ *           example: Note not found
+ *     NoteResponse:
+ *       type: object
+ *       required:
+ *         - message
+ *         - note
+ *       properties:
+ *         message:
+ *           type: string
+ *           example: Note created
+ *         note:
+ *           $ref: '#/components/schemas/Note'
+ */
+
 // GET /
 // Main route.
 app.get("/", (req, res) => {
@@ -29,6 +127,23 @@ app.get("/", (req, res) => {
 
 // GET /notes
 // Get all notes from PostgreSQL.
+/**
+ * @openapi
+ * /notes:
+ *   get:
+ *     summary: Get all notes
+ *     tags:
+ *       - Notes
+ *     responses:
+ *       200:
+ *         description: List of notes
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Note'
+ */
 app.get("/notes", async (req, res) => {
   const notes = await prisma.note.findMany({
     orderBy: {
@@ -41,6 +156,40 @@ app.get("/notes", async (req, res) => {
 
 // GET /notes/:id
 // Get one note by ID.
+/**
+ * @openapi
+ * /notes/{id}:
+ *   get:
+ *     summary: Get one note by ID
+ *     tags:
+ *       - Notes
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         example: 1
+ *     responses:
+ *       200:
+ *         description: Found note
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Note'
+ *       400:
+ *         description: Invalid note ID
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/MessageResponse'
+ *       404:
+ *         description: Note not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/MessageResponse'
+ */
 app.get("/notes/:id", async (req, res) => {
   const noteId = Number(req.params.id);
 
@@ -67,6 +216,33 @@ app.get("/notes/:id", async (req, res) => {
 
 // POST /notes
 // Create a new note in PostgreSQL.
+/**
+ * @openapi
+ * /notes:
+ *   post:
+ *     summary: Create a note
+ *     tags:
+ *       - Notes
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/CreateNoteInput'
+ *     responses:
+ *       201:
+ *         description: Note created
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/NoteResponse'
+ *       400:
+ *         description: Title and content are required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/MessageResponse'
+ */
 app.post("/notes", async (req, res) => {
   const { title, content } = req.body;
 
@@ -91,6 +267,46 @@ app.post("/notes", async (req, res) => {
 
 // PATCH /notes/:id
 // Partially update one note by ID.
+/**
+ * @openapi
+ * /notes/{id}:
+ *   patch:
+ *     summary: Partially update a note
+ *     tags:
+ *       - Notes
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         example: 1
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/UpdateNoteInput'
+ *     responses:
+ *       200:
+ *         description: Note updated
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/NoteResponse'
+ *       400:
+ *         description: Invalid ID or empty update body
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/MessageResponse'
+ *       404:
+ *         description: Note not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/MessageResponse'
+ */
 app.patch("/notes/:id", async (req, res) => {
   const noteId = Number(req.params.id);
 
@@ -145,6 +361,40 @@ app.patch("/notes/:id", async (req, res) => {
 
 // DELETE /notes/:id
 // Delete one note by ID.
+/**
+ * @openapi
+ * /notes/{id}:
+ *   delete:
+ *     summary: Delete a note
+ *     tags:
+ *       - Notes
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         example: 1
+ *     responses:
+ *       200:
+ *         description: Note deleted
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/MessageResponse'
+ *       400:
+ *         description: Invalid note ID
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/MessageResponse'
+ *       404:
+ *         description: Note not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/MessageResponse'
+ */
 app.delete("/notes/:id", async (req, res) => {
   const noteId = Number(req.params.id);
 
