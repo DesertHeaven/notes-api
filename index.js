@@ -27,6 +27,87 @@ const asyncHandler = (routeHandler) => {
   };
 };
 
+const hasField = (object, field) => {
+  return Object.prototype.hasOwnProperty.call(object, field);
+};
+
+const isObject = (value) => {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+};
+
+const isNonEmptyString = (value) => {
+  return typeof value === "string" && value.trim().length > 0;
+};
+
+const validateCreateNoteInput = (body) => {
+  if (!isObject(body)) {
+    return {
+      error: "Request body must be an object",
+    };
+  }
+
+  const { title, content } = body;
+
+  if (!isNonEmptyString(title)) {
+    return {
+      error: "Title must be a non-empty string",
+    };
+  }
+
+  if (!isNonEmptyString(content)) {
+    return {
+      error: "Content must be a non-empty string",
+    };
+  }
+
+  return {
+    data: {
+      title: title.trim(),
+      content: content.trim(),
+    },
+  };
+};
+
+const validateUpdateNoteInput = (body) => {
+  if (!isObject(body)) {
+    return {
+      error: "Request body must be an object",
+    };
+  }
+
+  const data = {};
+
+  if (hasField(body, "title")) {
+    if (!isNonEmptyString(body.title)) {
+      return {
+        error: "Title must be a non-empty string",
+      };
+    }
+
+    data.title = body.title.trim();
+  }
+
+  if (hasField(body, "content")) {
+    if (!isNonEmptyString(body.content)) {
+      return {
+        error: "Content must be a non-empty string",
+      };
+    }
+
+    data.content = body.content.trim();
+  }
+
+  if (Object.keys(data).length === 0) {
+    return {
+      error: "At least title or content is required",
+    };
+  }
+
+  return {
+    data,
+  };
+};
+
 const openapiSpec = swaggerJsdoc({
   definition: {
     openapi: "3.0.0",
@@ -89,18 +170,22 @@ app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(openapiSpec));
  *       properties:
  *         title:
  *           type: string
+ *           minLength: 1
  *           example: Learn Swagger
  *         content:
  *           type: string
+ *           minLength: 1
  *           example: Add OpenAPI docs to Express.
  *     UpdateNoteInput:
  *       type: object
  *       properties:
  *         title:
  *           type: string
+ *           minLength: 1
  *           example: Updated title
  *         content:
  *           type: string
+ *           minLength: 1
  *           example: Updated content
  *     MessageResponse:
  *       type: object
@@ -254,7 +339,7 @@ app.get("/notes/:id", asyncHandler(async (req, res) => {
  *             schema:
  *               $ref: '#/components/schemas/NoteResponse'
  *       400:
- *         description: Title and content are required
+ *         description: Invalid title or content
  *         content:
  *           application/json:
  *             schema:
@@ -263,19 +348,16 @@ app.get("/notes/:id", asyncHandler(async (req, res) => {
  *         $ref: '#/components/responses/InternalServerError'
  */
 app.post("/notes", asyncHandler(async (req, res) => {
-  const { title, content } = req.body;
+  const validationResult = validateCreateNoteInput(req.body);
 
-  if (!title || !content) {
+  if (validationResult.error) {
     return res.status(400).json({
-      message: "Title and content are required",
+      message: validationResult.error,
     });
   }
 
   const newNote = await prisma.note.create({
-    data: {
-      title,
-      content,
-    },
+    data: validationResult.data,
   });
 
   res.status(201).json({
@@ -314,7 +396,7 @@ app.post("/notes", asyncHandler(async (req, res) => {
  *             schema:
  *               $ref: '#/components/schemas/NoteResponse'
  *       400:
- *         description: Invalid ID or empty update body
+ *         description: Invalid ID, empty update body, or invalid field value
  *         content:
  *           application/json:
  *             schema:
@@ -349,29 +431,19 @@ app.patch("/notes/:id", asyncHandler(async (req, res) => {
     });
   }
 
-  const { title, content } = req.body;
+  const validationResult = validateUpdateNoteInput(req.body);
 
-  if (title === undefined && content === undefined) {
+  if (validationResult.error) {
     return res.status(400).json({
-      message: "At least title or content is required",
+      message: validationResult.error,
     });
-  }
-
-  const data = {};
-
-  if (title !== undefined) {
-    data.title = title;
-  }
-
-  if (content !== undefined) {
-    data.content = content;
   }
 
   const updatedNote = await prisma.note.update({
     where: {
       id: noteId,
     },
-    data,
+    data: validationResult.data,
   });
 
   res.json({
@@ -452,6 +524,12 @@ app.delete("/notes/:id", asyncHandler(async (req, res) => {
 
 app.use((err, req, res, next) => {
   console.error(err);
+
+  if (err.type === "entity.parse.failed") {
+    return res.status(400).json({
+      message: "Invalid JSON body",
+    });
+  }
 
   res.status(500).json({
     message: "Internal server error",
