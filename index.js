@@ -39,6 +39,10 @@ const isNonEmptyString = (value) => {
   return typeof value === "string" && value.trim().length > 0;
 };
 
+const isValidId = (value) => {
+  return Number.isInteger(value) && value > 0;
+};
+
 const validateCreateNoteInput = (body) => {
   if (!isObject(body)) {
     return {
@@ -269,6 +273,7 @@ app.get("/notes", asyncHandler(async (req, res) => {
  *         required: true
  *         schema:
  *           type: integer
+ *           minimum: 1
  *         example: 1
  *     responses:
  *       200:
@@ -295,7 +300,7 @@ app.get("/notes", asyncHandler(async (req, res) => {
 app.get("/notes/:id", asyncHandler(async (req, res) => {
   const noteId = Number(req.params.id);
 
-  if (Number.isNaN(noteId)) {
+  if (!isValidId(noteId)) {
     return res.status(400).json({
       message: "Invalid note ID",
     });
@@ -381,6 +386,7 @@ app.post("/notes", asyncHandler(async (req, res) => {
  *         required: true
  *         schema:
  *           type: integer
+ *           minimum: 1
  *         example: 1
  *     requestBody:
  *       required: true
@@ -413,7 +419,7 @@ app.post("/notes", asyncHandler(async (req, res) => {
 app.patch("/notes/:id", asyncHandler(async (req, res) => {
   const noteId = Number(req.params.id);
 
-  if (Number.isNaN(noteId)) {
+  if (!isValidId(noteId)) {
     return res.status(400).json({
       message: "Invalid note ID",
     });
@@ -467,6 +473,7 @@ app.patch("/notes/:id", asyncHandler(async (req, res) => {
  *         required: true
  *         schema:
  *           type: integer
+ *           minimum: 1
  *         example: 1
  *     responses:
  *       200:
@@ -493,7 +500,7 @@ app.patch("/notes/:id", asyncHandler(async (req, res) => {
 app.delete("/notes/:id", asyncHandler(async (req, res) => {
   const noteId = Number(req.params.id);
 
-  if (Number.isNaN(noteId)) {
+  if (!isValidId(noteId)) {
     return res.status(400).json({
       message: "Invalid note ID",
     });
