@@ -5,6 +5,7 @@ const { PrismaClient } = require("@prisma/client");
 const { PrismaPg } = require("@prisma/adapter-pg");
 const swaggerJsdoc = require("swagger-jsdoc");
 const swaggerUi = require("swagger-ui-express");
+const { z } = require("zod");
 
 const app = express();
 
@@ -43,34 +44,10 @@ const isValidId = (value) => {
   return Number.isInteger(value) && value > 0;
 };
 
-const validateCreateNoteInput = (body) => {
-  if (!isObject(body)) {
-    return {
-      error: "Request body must be an object",
-    };
-  }
-
-  const { title, content } = body;
-
-  if (!isNonEmptyString(title)) {
-    return {
-      error: "Title must be a non-empty string",
-    };
-  }
-
-  if (!isNonEmptyString(content)) {
-    return {
-      error: "Content must be a non-empty string",
-    };
-  }
-
-  return {
-    data: {
-      title: title.trim(),
-      content: content.trim(),
-    },
-  };
-};
+const createNoteSchema = z.object({
+  title: z.string().trim().min(1, "Title must be a non-empty string"),
+  content: z.string().trim().min(1, "Content must be a non-empty string"),
+});
 
 const validateUpdateNoteInput = (body) => {
   if (!isObject(body)) {
@@ -353,11 +330,11 @@ app.get("/notes/:id", asyncHandler(async (req, res) => {
  *         $ref: '#/components/responses/InternalServerError'
  */
 app.post("/notes", asyncHandler(async (req, res) => {
-  const validationResult = validateCreateNoteInput(req.body);
+  const validationResult = createNoteSchema.safeParse(req.body);
 
-  if (validationResult.error) {
+  if (!validationResult.success) {
     return res.status(400).json({
-      message: validationResult.error,
+      message: validationResult.error.issues[0].message,
     });
   }
 
