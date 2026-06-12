@@ -28,18 +28,6 @@ const asyncHandler = (routeHandler) => {
   };
 };
 
-const hasField = (object, field) => {
-  return Object.prototype.hasOwnProperty.call(object, field);
-};
-
-const isObject = (value) => {
-  return value !== null && typeof value === "object" && !Array.isArray(value);
-};
-
-const isNonEmptyString = (value) => {
-  return typeof value === "string" && value.trim().length > 0;
-};
-
 const isValidId = (value) => {
   return Number.isInteger(value) && value > 0;
 };
@@ -49,45 +37,12 @@ const createNoteSchema = z.object({
   content: z.string().trim().min(1, "Content must be a non-empty string"),
 });
 
-const validateUpdateNoteInput = (body) => {
-  if (!isObject(body)) {
-    return {
-      error: "Request body must be an object",
-    };
-  }
-
-  const data = {};
-
-  if (hasField(body, "title")) {
-    if (!isNonEmptyString(body.title)) {
-      return {
-        error: "Title must be a non-empty string",
-      };
-    }
-
-    data.title = body.title.trim();
-  }
-
-  if (hasField(body, "content")) {
-    if (!isNonEmptyString(body.content)) {
-      return {
-        error: "Content must be a non-empty string",
-      };
-    }
-
-    data.content = body.content.trim();
-  }
-
-  if (Object.keys(data).length === 0) {
-    return {
-      error: "At least title or content is required",
-    };
-  }
-
-  return {
-    data,
-  };
-};
+const updateNoteSchema = createNoteSchema.partial().refine(
+  (data) => Object.keys(data).length > 0,
+  {
+    message: "At least title or content is required",
+  },
+);
 
 const openapiSpec = swaggerJsdoc({
   definition: {
@@ -414,11 +369,11 @@ app.patch("/notes/:id", asyncHandler(async (req, res) => {
     });
   }
 
-  const validationResult = validateUpdateNoteInput(req.body);
+  const validationResult = updateNoteSchema.safeParse(req.body);
 
-  if (validationResult.error) {
+  if (!validationResult.success) {
     return res.status(400).json({
-      message: validationResult.error,
+      message: validationResult.error.issues[0].message,
     });
   }
 
