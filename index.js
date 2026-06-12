@@ -44,6 +44,22 @@ const updateNoteSchema = createNoteSchema.partial().refine(
   },
 );
 
+const formatValidationErrors = (issues) => {
+  return issues.map((issue) => {
+    return {
+      field: issue.path.join(".") || "body",
+      message: issue.message,
+    };
+  });
+};
+
+const sendValidationError = (res, error) => {
+  return res.status(400).json({
+    message: "Validation failed",
+    errors: formatValidationErrors(error.issues),
+  });
+};
+
 const openapiSpec = swaggerJsdoc({
   definition: {
     openapi: "3.0.0",
@@ -131,6 +147,31 @@ app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(openapiSpec));
  *         message:
  *           type: string
  *           example: Note not found
+ *     ValidationIssue:
+ *       type: object
+ *       required:
+ *         - field
+ *         - message
+ *       properties:
+ *         field:
+ *           type: string
+ *           example: title
+ *         message:
+ *           type: string
+ *           example: Title must be a non-empty string
+ *     ValidationErrorResponse:
+ *       type: object
+ *       required:
+ *         - message
+ *         - errors
+ *       properties:
+ *         message:
+ *           type: string
+ *           example: Validation failed
+ *         errors:
+ *           type: array
+ *           items:
+ *             $ref: '#/components/schemas/ValidationIssue'
  *     NoteResponse:
  *       type: object
  *       required:
@@ -280,7 +321,7 @@ app.get("/notes/:id", asyncHandler(async (req, res) => {
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/MessageResponse'
+ *               $ref: '#/components/schemas/ValidationErrorResponse'
  *       500:
  *         $ref: '#/components/responses/InternalServerError'
  */
@@ -288,9 +329,7 @@ app.post("/notes", asyncHandler(async (req, res) => {
   const validationResult = createNoteSchema.safeParse(req.body);
 
   if (!validationResult.success) {
-    return res.status(400).json({
-      message: validationResult.error.issues[0].message,
-    });
+    return sendValidationError(res, validationResult.error);
   }
 
   const newNote = await prisma.note.create({
@@ -338,7 +377,9 @@ app.post("/notes", asyncHandler(async (req, res) => {
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/MessageResponse'
+ *               oneOf:
+ *                 - $ref: '#/components/schemas/MessageResponse'
+ *                 - $ref: '#/components/schemas/ValidationErrorResponse'
  *       404:
  *         description: Note not found
  *         content:
@@ -372,9 +413,7 @@ app.patch("/notes/:id", asyncHandler(async (req, res) => {
   const validationResult = updateNoteSchema.safeParse(req.body);
 
   if (!validationResult.success) {
-    return res.status(400).json({
-      message: validationResult.error.issues[0].message,
-    });
+    return sendValidationError(res, validationResult.error);
   }
 
   const updatedNote = await prisma.note.update({
