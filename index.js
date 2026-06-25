@@ -1,10 +1,9 @@
 require("dotenv/config");
 
 const express = require("express");
-const { PrismaClient } = require("@prisma/client");
-const { PrismaPg } = require("@prisma/adapter-pg");
 const swaggerJsdoc = require("swagger-jsdoc");
 const swaggerUi = require("swagger-ui-express");
+const prisma = require("./prisma/client");
 const {
   createNoteSchema,
   updateNoteSchema,
@@ -12,14 +11,6 @@ const {
 } = require("./validation/note.validation");
 
 const app = express();
-
-const adapter = new PrismaPg({
-  connectionString: process.env.DATABASE_URL,
-});
-
-const prisma = new PrismaClient({
-  adapter,
-});
 
 const PORT = 3000;
 
