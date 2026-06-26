@@ -1,6 +1,7 @@
 require("dotenv/config");
 
 const express = require("express");
+const cors = require("cors");
 const swaggerJsdoc = require("swagger-jsdoc");
 const swaggerUi = require("swagger-ui-express");
 const notesRouter = require("./routes/notes.routes");
@@ -8,6 +9,32 @@ const notesRouter = require("./routes/notes.routes");
 const app = express();
 
 const PORT = process.env.PORT || 3000;
+const LOCAL_CLIENT_ORIGINS = [
+  "http://localhost:3000",
+  "http://localhost:4200",
+  "http://localhost:5173",
+  "http://127.0.0.1:3000",
+  "http://127.0.0.1:4200",
+  "http://127.0.0.1:5173",
+];
+
+const clientOrigins = process.env.CLIENT_ORIGINS
+  ? process.env.CLIENT_ORIGINS.split(",")
+      .map((origin) => origin.trim())
+      .filter(Boolean)
+  : LOCAL_CLIENT_ORIGINS;
+
+const corsOptions = {
+  origin(origin, callback) {
+    if (!origin || clientOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+
+    return callback(new Error("Not allowed by CORS"));
+  },
+};
+
+app.use(cors(corsOptions));
 
 // Middleware for reading JSON request body.
 app.use(express.json());
@@ -99,6 +126,14 @@ app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(openapiSpec));
  *         message:
  *           type: string
  *           example: Note not found
+ *     HealthResponse:
+ *       type: object
+ *       required:
+ *         - status
+ *       properties:
+ *         status:
+ *           type: string
+ *           example: ok
  *     ValidationIssue:
  *       type: object
  *       required:
@@ -152,10 +187,37 @@ app.get("/", (req, res) => {
   });
 });
 
-app.use(notesRouter);
+/**
+ * @openapi
+ * /health:
+ *   get:
+ *     summary: Check API health
+ *     tags:
+ *       - System
+ *     responses:
+ *       200:
+ *         description: API is running
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/HealthResponse'
+ */
+app.get("/health", (req, res) => {
+  res.json({
+    status: "ok",
+  });
+});
+
+app.use("/api/v1", notesRouter);
 
 app.use((err, req, res, next) => {
   console.error(err);
+
+  if (err.message === "Not allowed by CORS") {
+    return res.status(403).json({
+      message: "Origin not allowed by CORS",
+    });
+  }
 
   if (err.type === "entity.parse.failed") {
     return res.status(400).json({

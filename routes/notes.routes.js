@@ -25,11 +25,11 @@ const sendValidationError = (res, error) => {
   });
 };
 
-// GET /notes
+// GET /api/v1/notes
 // Get all notes from PostgreSQL.
 /**
  * @openapi
- * /notes:
+ * /api/v1/notes:
  *   get:
  *     summary: Get all notes
  *     tags:
@@ -56,11 +56,11 @@ router.get("/notes", asyncHandler(async (req, res) => {
   res.json(notes);
 }));
 
-// GET /notes/:id
+// GET /api/v1/notes/:id
 // Get one note by ID.
 /**
  * @openapi
- * /notes/{id}:
+ * /api/v1/notes/{id}:
  *   get:
  *     summary: Get one note by ID
  *     tags:
@@ -119,11 +119,11 @@ router.get("/notes/:id", asyncHandler(async (req, res) => {
   res.json(note);
 }));
 
-// POST /notes
+// POST /api/v1/notes
 // Create a new note in PostgreSQL.
 /**
  * @openapi
- * /notes:
+ * /api/v1/notes:
  *   post:
  *     summary: Create a note
  *     tags:
@@ -167,11 +167,11 @@ router.post("/notes", asyncHandler(async (req, res) => {
   });
 }));
 
-// PATCH /notes/:id
+// PATCH /api/v1/notes/:id
 // Partially update one note by ID.
 /**
  * @openapi
- * /notes/{id}:
+ * /api/v1/notes/{id}:
  *   patch:
  *     summary: Partially update a note
  *     tags:
@@ -254,11 +254,11 @@ router.patch("/notes/:id", asyncHandler(async (req, res) => {
   });
 }));
 
-// DELETE /notes/:id
+// DELETE /api/v1/notes/:id
 // Delete one note by ID.
 /**
  * @openapi
- * /notes/{id}:
+ * /api/v1/notes/{id}:
  *   delete:
  *     summary: Delete a note
  *     tags:
