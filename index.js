@@ -4,6 +4,7 @@ const express = require("express");
 const cors = require("cors");
 const swaggerJsdoc = require("swagger-jsdoc");
 const swaggerUi = require("swagger-ui-express");
+const apiKeyMiddleware = require("./middleware/api-key.middleware");
 const notesRouter = require("./routes/notes.routes");
 
 const app = express();
@@ -66,6 +67,11 @@ app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(openapiSpec));
 /**
  * @openapi
  * components:
+ *   securitySchemes:
+ *     ApiKeyAuth:
+ *       type: apiKey
+ *       in: header
+ *       name: x-api-key
  *   schemas:
  *     Note:
  *       type: object
@@ -171,6 +177,12 @@ app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(openapiSpec));
  *         note:
  *           $ref: '#/components/schemas/Note'
  *   responses:
+ *     Unauthorized:
+ *       description: Invalid or missing API key
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/MessageResponse'
  *     InternalServerError:
  *       description: Internal server error
  *       content:
@@ -208,7 +220,7 @@ app.get("/health", (req, res) => {
   });
 });
 
-app.use("/api/v1", notesRouter);
+app.use("/api/v1", apiKeyMiddleware, notesRouter);
 
 app.use((err, req, res, next) => {
   console.error(err);

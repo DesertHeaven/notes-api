@@ -34,6 +34,8 @@ const sendValidationError = (res, error) => {
  *     summary: Get all notes
  *     tags:
  *       - Notes
+ *     security:
+ *       - ApiKeyAuth: []
  *     responses:
  *       200:
  *         description: List of notes
@@ -43,6 +45,8 @@ const sendValidationError = (res, error) => {
  *               type: array
  *               items:
  *                 $ref: '#/components/schemas/Note'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
  *       500:
  *         $ref: '#/components/responses/InternalServerError'
  */
@@ -65,6 +69,8 @@ router.get("/notes", asyncHandler(async (req, res) => {
  *     summary: Get one note by ID
  *     tags:
  *       - Notes
+ *     security:
+ *       - ApiKeyAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -86,6 +92,8 @@ router.get("/notes", asyncHandler(async (req, res) => {
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/MessageResponse'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
  *       404:
  *         description: Note not found
  *         content:
@@ -128,6 +136,8 @@ router.get("/notes/:id", asyncHandler(async (req, res) => {
  *     summary: Create a note
  *     tags:
  *       - Notes
+ *     security:
+ *       - ApiKeyAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -147,6 +157,8 @@ router.get("/notes/:id", asyncHandler(async (req, res) => {
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/ValidationErrorResponse'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
  *       500:
  *         $ref: '#/components/responses/InternalServerError'
  */
@@ -176,6 +188,8 @@ router.post("/notes", asyncHandler(async (req, res) => {
  *     summary: Partially update a note
  *     tags:
  *       - Notes
+ *     security:
+ *       - ApiKeyAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -205,6 +219,8 @@ router.post("/notes", asyncHandler(async (req, res) => {
  *               oneOf:
  *                 - $ref: '#/components/schemas/MessageResponse'
  *                 - $ref: '#/components/schemas/ValidationErrorResponse'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
  *       404:
  *         description: Note not found
  *         content:
@@ -263,6 +279,8 @@ router.patch("/notes/:id", asyncHandler(async (req, res) => {
  *     summary: Delete a note
  *     tags:
  *       - Notes
+ *     security:
+ *       - ApiKeyAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -284,6 +302,8 @@ router.patch("/notes/:id", asyncHandler(async (req, res) => {
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/MessageResponse'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
  *       404:
  *         description: Note not found
  *         content:
