@@ -7,7 +7,7 @@ const notesRouter = require("./routes/notes.routes");
 
 const app = express();
 
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 
 // Middleware for reading JSON request body.
 app.use(express.json());
@@ -22,8 +22,8 @@ const openapiSpec = swaggerJsdoc({
     },
     servers: [
       {
-        url: `http://localhost:${PORT}`,
-        description: "Local development server",
+        url: "/",
+        description: "Current server",
       },
     ],
   },
