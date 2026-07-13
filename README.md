@@ -21,16 +21,27 @@ Pet project для заметок на Node.js, Express, PostgreSQL, Prisma, Zod
 - Validation (валидация) выполняется через Zod
 - Swagger/OpenAPI подключен
 - Notes endpoints защищены через `x-api-key`
-- Следующий этап: deploy (размещение) на Render + Neon
+- Backend развернут на Render
+- PostgreSQL размещен в Neon
+
+## Deployment (размещение)
+
+- API: `https://notes-api-a2d9.onrender.com`
+- Health check (проверка состояния): `https://notes-api-a2d9.onrender.com/health`
+- Swagger UI: `https://notes-api-a2d9.onrender.com/api-docs`
+- Database (база данных): PostgreSQL в Neon
+
+Free instance (бесплатный экземпляр) Render может переходить в спящий режим при отсутствии запросов, поэтому первый ответ иногда приходит с задержкой.
 
 ## Architecture (архитектура)
 
 ```text
 Client / Postman
+  -> Render
   -> Express routes
   -> Zod validation
   -> Prisma Client
-  -> PostgreSQL
+  -> PostgreSQL (Neon)
 ```
 
 ## Environment Variables (переменные окружения)
@@ -135,17 +146,15 @@ x-api-key: your-api-key
 
 ## Deploy Notes (заметки по размещению)
 
-Для deploy (размещения) нужно:
+Для deploy (размещения) используются:
 
-- указать `DATABASE_URL` в hosting provider (сервисе размещения)
-- указать `API_KEY` в hosting provider
-- указать `CLIENT_ORIGINS` для адресов frontend-приложений
-- применить migrations командой `npx prisma migrate deploy`
+- Render для запуска Node.js/Express API
+- Neon для удаленной PostgreSQL-базы
+- environment variables (переменные окружения) `DATABASE_URL`, `API_KEY` и `CLIENT_ORIGINS`
+- команда `npx prisma migrate deploy` для применения migrations (миграций)
 
 ## Roadmap (план развития)
 
-- Deploy backend (разместить backend) на Render
-- Move PostgreSQL database (перенести базу PostgreSQL) в Neon
 - Add JWT authentication (добавить JWT-авторизацию)
 - Connect frontend clients (подключить frontend-клиенты)
 - Add user-owned notes (сделать заметки, принадлежащие пользователю)
